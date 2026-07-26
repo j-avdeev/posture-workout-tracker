@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <meta name="description" content="A private posture and strength workout tracker for daily mobility and alternating A/B sessions.">
+  <title>Posture & Strength Tracker</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="app-header">
+    <div class="brand-wrap">
+      <div class="brand-mark" aria-hidden="true">P</div>
+      <div>
+        <h1>Posture & Strength</h1>
+        <p class="subtitle">Daily mobility + progressive home training</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span id="connectionBadge" class="status-badge" title="Data storage status">Local</span>
+      <button id="themeToggle" class="icon-button" type="button" aria-label="Toggle dark mode" title="Toggle theme">◐</button>
+    </div>
+  </header>
+
+  <nav class="tab-bar" aria-label="Main navigation">
+    <button class="tab-button active" data-view="today" type="button">Today</button>
+    <button class="tab-button" data-view="calendar" type="button">Calendar</button>
+    <button class="tab-button" data-view="progress" type="button">Progress</button>
+    <button class="tab-button" data-view="settings" type="button">Settings</button>
+  </nav>
+
+  <main id="main" class="app-main">
+    <section id="todayView" class="view active" aria-labelledby="todayHeading">
+      <div class="date-toolbar card">
+        <button id="previousDay" class="icon-button" type="button" aria-label="Previous day">←</button>
+        <div class="date-title-wrap">
+          <p id="relativeDate" class="eyebrow">Today</p>
+          <h2 id="todayHeading">Loading…</h2>
+        </div>
+        <button id="nextDay" class="icon-button" type="button" aria-label="Next day">→</button>
+      </div>
+
+      <section class="summary-grid" aria-label="Daily summary">
+        <article class="card stat-card">
+          <span class="stat-label">Day progress</span>
+          <strong id="dayProgressValue" class="stat-value">0%</strong>
+          <div class="progress-track" aria-hidden="true"><div id="dayProgressBar" class="progress-fill"></div></div>
+        </article>
+        <article class="card stat-card">
+          <span class="stat-label">Current streak</span>
+          <strong id="streakValue" class="stat-value">0 days</strong>
+          <span class="stat-hint">Completed days in a row</span>
+        </article>
+      </section>
+
+      <section id="dailySection" class="workout-section card" aria-labelledby="dailyHeading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Every day · about 8–10 min</p>
+            <h3 id="dailyHeading">Daily posture routine</h3>
+          </div>
+          <span id="dailySectionProgress" class="section-progress">0/0</span>
+        </div>
+        <div id="dailyExerciseList" class="exercise-list"></div>
+      </section>
+
+      <section id="strengthSection" class="workout-section card" aria-labelledby="strengthHeading">
+        <div class="section-heading strength-heading-row">
+          <div>
+            <p id="strengthEyebrow" class="eyebrow">Scheduled strength session</p>
+            <h3 id="strengthHeading">Workout A</h3>
+          </div>
+          <div class="section-controls">
+            <label class="compact-field" for="strengthTypeSelect">
+              <span>Session</span>
+              <select id="strengthTypeSelect">
+                <option value="A">Workout A</option>
+                <option value="B">Workout B</option>
+                <option value="none">No strength session</option>
+              </select>
+            </label>
+            <span id="strengthSectionProgress" class="section-progress">0/0</span>
+          </div>
+        </div>
+        <p id="strengthDescription" class="section-description"></p>
+        <div id="strengthExerciseList" class="exercise-list"></div>
+      </section>
+
+      <section class="card notes-card" aria-labelledby="notesHeading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Optional</p>
+            <h3 id="notesHeading">Notes</h3>
+          </div>
+        </div>
+        <label for="dayNotes" class="sr-only">Workout notes</label>
+        <textarea id="dayNotes" rows="3" placeholder="How did your back, neck and shoulders feel today?"></textarea>
+      </section>
+
+      <section class="card finish-card" aria-live="polite">
+        <div>
+          <h3 id="finishTitle">Finish today’s plan</h3>
+          <p id="finishMessage">Complete the required exercises, then mark the day as finished.</p>
+        </div>
+        <button id="completeDayButton" class="primary-button" type="button">Mark day complete</button>
+      </section>
+
+      <section class="card desk-break-card" aria-labelledby="deskBreakHeading">
+        <div>
+          <p class="eyebrow">For long computer days</p>
+          <h3 id="deskBreakHeading">Movement break timer</h3>
+          <p>Stand up and move for 2–3 minutes after each interval.</p>
+        </div>
+        <div class="timer-panel">
+          <strong id="timerDisplay" class="timer-display">45:00</strong>
+          <div class="timer-actions">
+            <button id="timerToggle" class="secondary-button" type="button">Start</button>
+            <button id="timerReset" class="text-button" type="button">Reset</button>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section id="calendarView" class="view" aria-labelledby="calendarHeading">
+      <section class="card calendar-card">
+        <div class="calendar-toolbar">
+          <button id="previousMonth" class="icon-button" type="button" aria-label="Previous month">←</button>
+          <h2 id="calendarHeading">Month</h2>
+          <button id="nextMonth" class="icon-button" type="button" aria-label="Next month">→</button>
+        </div>
+        <div class="calendar-legend" aria-label="Calendar legend">
+          <span><i class="legend-dot complete"></i> Complete</span>
+          <span><i class="legend-dot partial"></i> Partial</span>
+          <span><i class="legend-dot planned"></i> Planned strength day</span>
+        </div>
+        <div class="calendar-weekdays" aria-hidden="true">
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+      </section>
+    </section>
+
+    <section id="progressView" class="view" aria-labelledby="progressHeading">
+      <div class="section-title-row">
+        <div>
+          <p class="eyebrow">Consistency matters more than perfection</p>
+          <h2 id="progressHeading">Progress</h2>
+        </div>
+        <label class="compact-field" for="progressRange">
+          <span>Range</span>
+          <select id="progressRange">
+            <option value="7">7 days</option>
+            <option value="30" selected>30 days</option>
+            <option value="90">90 days</option>
+          </select>
+        </label>
+      </div>
+
+      <section class="summary-grid progress-summary" aria-label="Progress summary">
+        <article class="card stat-card"><span class="stat-label">Completed days</span><strong id="completedDaysStat" class="stat-value">0</strong></article>
+        <article class="card stat-card"><span class="stat-label">Strength sessions</span><strong id="strengthSessionsStat" class="stat-value">0</strong></article>
+        <article class="card stat-card"><span class="stat-label">Routine completion</span><strong id="routineRateStat" class="stat-value">0%</strong></article>
+        <article class="card stat-card"><span class="stat-label">Best streak</span><strong id="bestStreakStat" class="stat-value">0 days</strong></article>
+      </section>
+
+      <section class="card chart-card" aria-labelledby="chartHeading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Daily completion</p>
+            <h3 id="chartHeading">Recent activity</h3>
+          </div>
+        </div>
+        <div id="activityChart" class="activity-chart" role="img" aria-label="Recent workout completion chart"></div>
+      </section>
+
+      <section class="card history-card" aria-labelledby="historyHeading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Latest entries</p>
+            <h3 id="historyHeading">Workout history</h3>
+          </div>
+        </div>
+        <div id="historyList" class="history-list"></div>
+      </section>
+    </section>
+
+    <section id="settingsView" class="view" aria-labelledby="settingsHeading">
+      <div class="section-title-row">
+        <div>
+          <p class="eyebrow">Personalise your tracker</p>
+          <h2 id="settingsHeading">Settings</h2>
+        </div>
+      </div>
+
+      <section class="card settings-card" aria-labelledby="scheduleHeading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Default plan</p>
+            <h3 id="scheduleHeading">Strength schedule</h3>
+          </div>
+        </div>
+        <p class="section-description">Choose three or fewer regular strength days. A and B alternate automatically.</p>
+        <fieldset class="weekday-picker">
+          <legend class="sr-only">Strength workout days</legend>
+          <label><input type="checkbox" value="1"> Mon</label>
+          <label><input type="checkbox" value="2"> Tue</label>
+          <label><input type="checkbox" value="3"> Wed</label>
+          <label><input type="checkbox" value="4"> Thu</label>
+          <label><input type="checkbox" value="5"> Fri</label>
+          <label><input type="checkbox" value="6"> Sat</label>
+          <label><input type="checkbox" value="0"> Sun</label>
+        </fieldset>
+        <div class="settings-grid">
+          <label class="field">
+            <span>First session in the sequence</span>
+            <select id="anchorTypeSelect">
+              <option value="A">Workout A</option>
+              <option value="B">Workout B</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Sequence start date</span>
+            <input id="anchorDateInput" type="date">
+          </label>
+          <label class="field">
+            <span>Movement break interval</span>
+            <select id="breakIntervalSelect">
+              <option value="30">30 minutes</option>
+              <option value="40">40 minutes</option>
+              <option value="45">45 minutes</option>
+              <option value="50">50 minutes</option>
+              <option value="60">60 minutes</option>
+            </select>
+          </label>
+        </div>
+        <button id="saveScheduleButton" class="primary-button" type="button">Save schedule</button>
+      </section>
+
+      <section class="card settings-card" aria-labelledby="cloudHeading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Optional</p>
+            <h3 id="cloudHeading">Cloud sync with Supabase</h3>
+          </div>
+          <span id="cloudStatusBadge" class="status-badge">Not configured</span>
+        </div>
+        <p id="cloudDescription" class="section-description">The app currently stores all progress only in this browser.</p>
+        <div id="signedOutControls" class="auth-controls">
+          <label class="field grow">
+            <span>Email address</span>
+            <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com">
+          </label>
+          <button id="magicLinkButton" class="primary-button" type="button">Send magic link</button>
+        </div>
+        <div id="signedInControls" class="auth-controls hidden">
+          <div>
+            <span class="field-label">Signed in as</span>
+            <strong id="signedInEmail">—</strong>
+          </div>
+          <button id="syncNowButton" class="secondary-button" type="button">Sync now</button>
+          <button id="signOutButton" class="text-button" type="button">Sign out</button>
+        </div>
+      </section>
+
+      <section class="card settings-card" aria-labelledby="dataHeading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Backup</p>
+            <h3 id="dataHeading">Your data</h3>
+          </div>
+        </div>
+        <div class="button-row">
+          <button id="exportButton" class="secondary-button" type="button">Export JSON</button>
+          <label class="secondary-button file-button" for="importInput">Import JSON</label>
+          <input id="importInput" class="sr-only" type="file" accept="application/json,.json">
+          <button id="resetButton" class="danger-button" type="button">Reset all data</button>
+        </div>
+      </section>
+
+      <section class="card safety-card">
+        <h3>Safety reminder</h3>
+        <p>Stop an exercise if it causes sharp, radiating or increasing pain. Seek medical assessment for weakness, numbness, bladder or bowel changes, significant trauma, fever, or persistent night pain.</p>
+      </section>
+    </section>
+  </main>
+
+  <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+  <template id="exerciseTemplate">
+    <article class="exercise-card">
+      <label class="exercise-check-row">
+        <input class="exercise-checkbox" type="checkbox">
+        <span class="custom-checkbox" aria-hidden="true">✓</span>
+        <span class="exercise-main">
+          <strong class="exercise-name"></strong>
+          <span class="exercise-target"></span>
+        </span>
+      </label>
+      <button class="exercise-details-toggle text-button" type="button" aria-expanded="false">Details</button>
+      <div class="exercise-details hidden">
+        <p class="exercise-cue"></p>
+        <label class="field compact-log-field">
+          <span>Actual result (optional)</span>
+          <input class="exercise-log-input" type="text" placeholder="e.g. 3 × 10">
+        </label>
+      </div>
+    </article>
+  </template>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
