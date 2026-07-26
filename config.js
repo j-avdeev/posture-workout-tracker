@@ -4,6 +4,6 @@
  * is enabled with the policies from supabase.sql.
  */
 window.APP_CONFIG = {
-  SUPABASE_URL: '',
-  SUPABASE_PUBLISHABLE_KEY: ''
+  SUPABASE_URL: 'https://fqqrmwaebcqtwwieatlt.supabase.co',
+  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_JsG2brzGWTdDQthNizWUGA_nunBJNFs'
 };
