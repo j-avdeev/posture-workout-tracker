@@ -1028,7 +1028,7 @@
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator) || window.location.protocol === 'file:') return;
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./service-worker.js').catch((error) => console.debug('Service worker unavailable', error));
+      navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' }).catch((error) => console.debug('Service worker unavailable', error));
     });
   }
 

@@ -11,7 +11,12 @@ const APP_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_ASSETS)));
+  // `cache: 'reload'` bypasses the HTTP cache so a fresh deploy never precaches stale files.
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(APP_ASSETS.map((url) => cache.add(new Request(url, { cache: 'reload' }))))
+    )
+  );
   self.skipWaiting();
 });
 
