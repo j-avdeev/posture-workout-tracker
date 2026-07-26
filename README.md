@@ -37,11 +37,22 @@ Open `http://localhost:8080`.
 2. Upload or push all files from this folder to the repository's `main` branch.
 3. Open **Repository settings → Pages**.
 4. Under **Build and deployment**, select **GitHub Actions** as the source.
+   This step cannot be skipped or automated from the workflow: the workflow's
+   `GITHUB_TOKEN` may not create a Pages site, so `configure-pages` fails with
+   `Get Pages site failed` until the site exists. The equivalent from a terminal
+   with an admin token is:
+
+   ```bash
+   gh api -X POST repos/YOUR-USERNAME/posture-workout-tracker/pages -f build_type=workflow
+   ```
 5. Open the repository's **Actions** tab and wait for the Pages workflow to finish.
+   If the first run failed before Pages was enabled, re-run it from that tab.
 6. The site will normally be available at:
    `https://YOUR-USERNAME.github.io/posture-workout-tracker/`
 
-Every later push to `main` automatically republishes the site.
+Every later push to `main` automatically republishes the site. The deploy stamps
+the commit SHA into the service worker's `CACHE_NAME`, so returning visitors get
+the new version on their next page load instead of a stale cached one.
 
 ## Optional Supabase cloud sync
 
