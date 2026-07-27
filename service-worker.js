@@ -28,36 +28,32 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Network first, with the cache as the offline fallback.
+//
+// This used to serve sub-resources cache-first, which broke the app after a deploy:
+// navigations were fetched from the network while app.js came from the old cache, so a
+// fresh index.html was paired with stale JavaScript and the new markup stayed unrendered.
+// The files here are a few hundred kilobytes in total, so always revalidating them is
+// cheap, and offline still works because every successful response is cached.
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
+        if (response.ok) {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          return response;
-        })
-        .catch(() => caches.match('./index.html'))
-    );
-    return;
-  }
-
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+        }
+        return response;
+      })
+      .catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        if (request.mode === 'navigate') return caches.match('./index.html');
+        return Response.error();
+      })
   );
 });
