@@ -2,8 +2,24 @@
   'use strict';
 
   const STORAGE_KEY = 'posture-strength-tracker-v1';
-  const APP_VERSION = 1;
+  const APP_VERSION = 2;
   const DAY_MS = 86_400_000;
+  const MIN_PIN_LENGTH = 6;
+
+  // Version 1 kept the warm-up inside each strength plan. Version 2 moved it into
+  // its own always-visible section, so those check marks have to move with it.
+  const LEGACY_WARMUP_IDS = {
+    'a-march': 'warmup-march',
+    'b-march': 'warmup-march',
+    'a-shoulder-circles': 'warmup-shoulder-circles',
+    'b-shoulder-circles': 'warmup-shoulder-circles',
+    'a-cat-cow': 'warmup-cat-cow',
+    'b-cat-cow': 'warmup-cat-cow',
+    'a-wall-slides': 'warmup-wall-slides',
+    'b-wall-slides': 'warmup-wall-slides',
+    'a-squats-warmup': 'warmup-squats',
+    'b-squats-warmup': 'warmup-squats'
+  };
 
   const PLANS = {
     daily: {
@@ -35,6 +51,7 @@
           id: 'thoracic-extension',
           name: 'Thoracic extension on a yoga block',
           target: '5 slow breaths',
+          seconds: 45,
           cue: 'Place the block across the upper back, not under the lower back. Support your head and avoid forcing the range.',
           group: 'Mobility'
         },
@@ -47,15 +64,21 @@
         }
       ]
     },
+    warmup: {
+      title: 'Warm-up',
+      description: 'Five easy minutes before a strength session — about one minute per movement.',
+      exercises: [
+        { id: 'warmup-march', name: 'March in place', target: '60 sec', seconds: 60, cue: 'Move easily and let your arms swing.', group: 'Warm-up' },
+        { id: 'warmup-shoulder-circles', name: 'Shoulder circles', target: '60 sec · 10 each direction', seconds: 60, cue: 'Use a smooth, comfortable range without shrugging.', group: 'Warm-up' },
+        { id: 'warmup-cat-cow', name: 'Cat–cow', target: '60 sec · 6–8 reps', seconds: 60, cue: 'Move gently through the spine without forcing either end position.', group: 'Warm-up' },
+        { id: 'warmup-wall-slides', name: 'Wall slides', target: '60 sec · 8 reps', seconds: 60, cue: 'Keep your ribs relaxed and shoulders away from your ears.', group: 'Warm-up' },
+        { id: 'warmup-squats', name: 'Bodyweight squats', target: '60 sec · 10 reps', seconds: 60, cue: 'Use a comfortable depth and keep your whole foot in contact with the floor.', group: 'Warm-up' }
+      ]
+    },
     A: {
       title: 'Workout A',
       description: 'Chest, back, legs and trunk stability. Leave about 1–3 good repetitions in reserve.',
       exercises: [
-        { id: 'a-march', name: 'March in place', target: '60 sec', cue: 'Move easily and let your arms swing.', group: 'Warm-up' },
-        { id: 'a-shoulder-circles', name: 'Shoulder circles', target: '10 each direction', cue: 'Use a smooth, comfortable range without shrugging.', group: 'Warm-up' },
-        { id: 'a-cat-cow', name: 'Cat–cow', target: '6–8 reps', cue: 'Move gently through the spine without forcing either end position.', group: 'Warm-up' },
-        { id: 'a-wall-slides', name: 'Wall slides', target: '8 reps', cue: 'Keep your ribs relaxed and shoulders away from your ears.', group: 'Warm-up' },
-        { id: 'a-squats-warmup', name: 'Bodyweight squats', target: '10 reps', cue: 'Use a comfortable depth and keep your whole foot in contact with the floor.', group: 'Warm-up' },
         { id: 'a-pullups', name: 'Pull-ups or slow negatives', target: '3 sets', cue: 'Use clean repetitions. For negatives, start at the top and lower for 3–5 seconds.', group: 'Main workout' },
         { id: 'a-pushups', name: 'Push-ups', target: '3 × 6–15 reps', cue: 'Keep your body in one line, avoid sagging through the lower back, and keep elbows roughly 30–60° from your torso.', group: 'Main workout' },
         { id: 'a-band-row', name: 'Resistance-band row', target: '3 × 12–20 reps', cue: 'Pull toward your lower ribs. Keep your shoulders down and avoid leaning backward.', group: 'Main workout' },
@@ -68,18 +91,13 @@
       title: 'Workout B',
       description: 'Shoulders, shoulder blades, legs and trunk stability. Keep every repetition controlled.',
       exercises: [
-        { id: 'b-march', name: 'March in place', target: '60 sec', cue: 'Move easily and let your arms swing.', group: 'Warm-up' },
-        { id: 'b-shoulder-circles', name: 'Shoulder circles', target: '10 each direction', cue: 'Use a smooth, comfortable range without shrugging.', group: 'Warm-up' },
-        { id: 'b-cat-cow', name: 'Cat–cow', target: '6–8 reps', cue: 'Move gently through the spine without forcing either end position.', group: 'Warm-up' },
-        { id: 'b-wall-slides', name: 'Wall slides', target: '8 reps', cue: 'Keep your ribs relaxed and shoulders away from your ears.', group: 'Warm-up' },
-        { id: 'b-squats-warmup', name: 'Bodyweight squats', target: '10 reps', cue: 'Use a comfortable depth and keep your whole foot in contact with the floor.', group: 'Warm-up' },
         { id: 'b-face-pulls', name: 'Resistance-band face pulls', target: '3 × 12–20 reps', cue: 'Pull toward your forehead and separate your hands. Keep the neck relaxed and avoid leaning back.', group: 'Main workout' },
         { id: 'b-pike-pushups', name: 'Pike push-ups', target: '3 × 5–12 reps', cue: 'Keep your hips high and lower your head slightly forward between your hands. Use an easier angle if needed.', group: 'Main workout' },
         { id: 'b-lateral-raises', name: 'Dumbbell lateral raises', target: '3 × 12–20 reps', cue: 'Raise with control and keep the shoulders away from your ears. Use one arm at a time if 3 kg is too heavy for strict form.', group: 'Main workout' },
         { id: 'b-band-pull-aparts', name: 'Band pull-aparts', target: '3 × 12–20 reps', cue: 'Keep the ribs stacked over the pelvis and avoid turning the movement into a lower-back arch.', group: 'Main workout' },
         { id: 'b-squats', name: 'Squats with a dumbbell or backpack', target: '3 × 10–20 reps', cue: 'Use a load you can control and a depth that feels comfortable.', group: 'Main workout' },
         { id: 'b-bird-dog', name: 'Bird dog', target: '3 × 6–10 each side', cue: 'Reach long rather than high. Keep your hips level and avoid rotating or arching.', group: 'Main workout' },
-        { id: 'b-side-plank', name: 'Side plank', target: '2–3 × 15–40 sec each side', cue: 'Keep your body long and breathe normally. Use the bent-knee version if necessary.', group: 'Main workout' }
+        { id: 'b-side-plank', name: 'Side plank', target: '2–3 × 15–40 sec each side', seconds: 30, cue: 'Keep your body long and breathe normally. Use the bent-knee version if necessary.', group: 'Main workout' }
       ]
     }
   };
@@ -96,6 +114,12 @@
   let authUser = null;
   let cloudSaveTimer = null;
   let syncing = false;
+  let gateMode = 'signIn';
+  let gateDismissed = false;
+  let wakeLock = null;
+  // One countdown per exercise card, keyed by `${section}:${exerciseId}`.
+  const exerciseTimers = new Map();
+  const warmupRun = { active: false, index: 0, deadline: 0, remaining: 0, paused: false, intervalId: null };
   const saveNotesDebounced = debounce((dateKey, value) => {
     const log = ensureLog(dateKey);
     log.notes = value.trim();
@@ -111,6 +135,9 @@
     applyTheme();
     populateSettings();
     renderAll();
+    // loadState() upgrades older payloads in memory; write the result back so the
+    // stored copy matches the current schema instead of migrating on every launch.
+    persistState({ skipCloud: true });
     initSupabase();
     registerServiceWorker();
   }
@@ -128,7 +155,14 @@
       'breakIntervalSelect', 'saveScheduleButton', 'cloudStatusBadge', 'cloudDescription',
       'signedOutControls', 'signedInControls', 'authEmail', 'magicLinkButton', 'signedInEmail',
       'syncNowButton', 'signOutButton', 'exportButton', 'importInput', 'resetButton', 'toastRegion',
-      'exerciseTemplate'
+      'exerciseTemplate',
+      'warmupSection', 'warmupSectionProgress', 'warmupDescription', 'warmupExerciseList',
+      'runWarmupButton', 'warmupRunPanel', 'warmupRunStep', 'warmupRunName', 'warmupRunCue',
+      'warmupRunRemaining', 'warmupRunPause', 'warmupRunSkip', 'warmupRunStop',
+      'authGate', 'authGateTitle', 'authGateSubtitle', 'authModeSignIn', 'authModeRegister',
+      'authGateForm', 'gateEmail', 'gatePin', 'gatePinConfirmField', 'gatePinConfirm', 'gateError',
+      'gateSubmit', 'gateMagicLink', 'gateSkip',
+      'authPin', 'pinSignInButton', 'pinRegisterButton', 'newPinInput', 'changePinButton', 'lockButton'
     ];
     ids.forEach((id) => { dom[id] = document.getElementById(id); });
     dom.tabButtons = [...document.querySelectorAll('.tab-button')];
@@ -152,12 +186,32 @@
     dom.saveScheduleButton.addEventListener('click', saveScheduleSettings);
     dom.timerToggle.addEventListener('click', toggleTimer);
     dom.timerReset.addEventListener('click', resetTimer);
-    dom.magicLinkButton.addEventListener('click', sendMagicLink);
+    dom.magicLinkButton.addEventListener('click', () => sendMagicLink(dom.authEmail.value));
     dom.syncNowButton.addEventListener('click', () => syncWithCloud(true));
     dom.signOutButton.addEventListener('click', signOut);
     dom.exportButton.addEventListener('click', exportData);
     dom.importInput.addEventListener('change', importData);
     dom.resetButton.addEventListener('click', resetAllData);
+
+    dom.runWarmupButton.addEventListener('click', startWarmupRun);
+    dom.warmupRunPause.addEventListener('click', toggleWarmupRunPause);
+    dom.warmupRunSkip.addEventListener('click', () => advanceWarmupRun(false));
+    dom.warmupRunStop.addEventListener('click', () => stopWarmupRun('Warm-up stopped.'));
+
+    dom.pinSignInButton.addEventListener('click', () => signInWithPin(dom.authEmail.value, dom.authPin.value));
+    dom.pinRegisterButton.addEventListener('click', () => registerWithPin(dom.authEmail.value, dom.authPin.value));
+    dom.changePinButton.addEventListener('click', changePin);
+    dom.lockButton.addEventListener('click', lockApp);
+
+    dom.authModeSignIn.addEventListener('click', () => setGateMode('signIn'));
+    dom.authModeRegister.addEventListener('click', () => setGateMode('register'));
+    dom.authGateForm.addEventListener('submit', handleGateSubmit);
+    dom.gateMagicLink.addEventListener('click', () => sendMagicLink(dom.gateEmail.value));
+    dom.gateSkip.addEventListener('click', () => {
+      gateDismissed = true;
+      hideAuthGate();
+      showToast('Working on this device only. Sign in from Settings whenever you want to sync.', '', 6000);
+    });
   }
 
   function renderAll() {
@@ -178,6 +232,13 @@
     }).format(selectedDate);
 
     renderExerciseList(dom.dailyExerciseList, PLANS.daily.exercises, 'daily', log);
+
+    renderExerciseList(dom.warmupExerciseList, PLANS.warmup.exercises, 'warmup', log);
+    const warmupDone = countCompleted(log.warmup.completed, PLANS.warmup.exercises);
+    dom.warmupSectionProgress.textContent = `${warmupDone}/${PLANS.warmup.exercises.length}`;
+    dom.warmupDescription.textContent = strengthType === 'none'
+      ? 'No strength session today, so the warm-up is optional — it does not count toward the day.'
+      : PLANS.warmup.description;
 
     dom.strengthTypeSelect.value = strengthType;
     if (strengthType === 'none') {
@@ -246,6 +307,7 @@
       const toggle = fragment.querySelector('.exercise-details-toggle');
       const details = fragment.querySelector('.exercise-details');
       const actualInput = fragment.querySelector('.exercise-log-input');
+      const timerButton = fragment.querySelector('.exercise-timer-button');
 
       const completed = Boolean(log[section]?.completed?.[exercise.id]);
       checkbox.checked = completed;
@@ -257,15 +319,26 @@
       checkbox.setAttribute('aria-label', `Mark ${exercise.name} complete`);
 
       checkbox.addEventListener('change', () => {
-        const mutableLog = ensureLog(renderedDateKey);
-        mutableLog[section].completed[exercise.id] = checkbox.checked;
-        if (!checkbox.checked) mutableLog.completed = false;
-        touchLog(mutableLog);
-        persistState();
-        renderToday();
-        renderCalendar();
-        renderProgress();
+        setExerciseCompleted(renderedDateKey, section, exercise.id, checkbox.checked);
       });
+
+      if (exercise.seconds) {
+        const timerKey = `${section}:${exercise.id}`;
+        timerButton.classList.remove('hidden');
+        // renderToday() runs on every check, so reconnect a countdown that is still running.
+        const running = exerciseTimers.get(timerKey);
+        if (running) {
+          running.button = timerButton;
+          timerButton.classList.add('running');
+          paintExerciseTimer(running);
+        } else {
+          timerButton.textContent = `▶ ${formatDuration(exercise.seconds)}`;
+        }
+        timerButton.setAttribute('aria-label', `Start a ${exercise.seconds} second timer for ${exercise.name}`);
+        timerButton.addEventListener('click', () => {
+          toggleExerciseTimer(timerKey, exercise, renderedDateKey, section, timerButton);
+        });
+      }
 
       toggle.addEventListener('click', () => {
         const expanded = toggle.getAttribute('aria-expanded') === 'true';
@@ -509,8 +582,12 @@
     if (timerRunning) return;
     timerRunning = true;
     dom.timerToggle.textContent = 'Pause';
+    // Count down against a wall-clock deadline. Background tabs and locked phones
+    // throttle setInterval hard, so decrementing once per tick would stretch a
+    // 45 minute break into something much longer.
+    const deadline = Date.now() + timerRemainingSeconds * 1000;
     timerIntervalId = window.setInterval(() => {
-      timerRemainingSeconds -= 1;
+      timerRemainingSeconds = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
       if (timerRemainingSeconds <= 0) {
         stopTimer();
         timerRemainingSeconds = state.settings.breakInterval * 60;
@@ -561,11 +638,181 @@
     }
   }
 
+  function formatDuration(totalSeconds) {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  function toggleExerciseTimer(timerKey, exercise, dateKey, section, button) {
+    if (exerciseTimers.has(timerKey)) {
+      stopExerciseTimer(timerKey);
+      return;
+    }
+    const timer = {
+      key: timerKey,
+      exercise,
+      dateKey,
+      section,
+      button,
+      remaining: exercise.seconds,
+      deadline: Date.now() + exercise.seconds * 1000,
+      intervalId: null
+    };
+    exerciseTimers.set(timerKey, timer);
+    button.classList.add('running');
+    paintExerciseTimer(timer);
+    timer.intervalId = window.setInterval(() => {
+      timer.remaining = Math.max(0, Math.ceil((timer.deadline - Date.now()) / 1000));
+      if (timer.remaining <= 0) {
+        finishExerciseTimer(timer);
+        return;
+      }
+      paintExerciseTimer(timer);
+    }, 250);
+  }
+
+  function paintExerciseTimer(timer) {
+    if (timer.button) timer.button.textContent = `■ ${formatDuration(timer.remaining)}`;
+  }
+
+  function stopExerciseTimer(timerKey) {
+    const timer = exerciseTimers.get(timerKey);
+    if (!timer) return;
+    window.clearInterval(timer.intervalId);
+    exerciseTimers.delete(timerKey);
+    if (timer.button) {
+      timer.button.classList.remove('running');
+      timer.button.textContent = `▶ ${formatDuration(timer.exercise.seconds)}`;
+    }
+  }
+
+  function finishExerciseTimer(timer) {
+    stopExerciseTimer(timer.key);
+    playTimerTone();
+    setExerciseCompleted(timer.dateKey, timer.section, timer.exercise.id, true);
+    showToast(`${timer.exercise.name}: time is up.`, 'success');
+  }
+
+  function setExerciseCompleted(dateKey, section, exerciseId, completed) {
+    const log = ensureLog(dateKey);
+    log[section].completed[exerciseId] = completed;
+    if (!completed) log.completed = false;
+    touchLog(log);
+    persistState();
+    renderToday();
+    renderCalendar();
+    renderProgress();
+  }
+
+  async function startWarmupRun() {
+    if (warmupRun.active) return;
+    warmupRun.active = true;
+    warmupRun.index = 0;
+    warmupRun.paused = false;
+    dom.warmupRunPanel.classList.remove('hidden');
+    dom.runWarmupButton.classList.add('hidden');
+    dom.warmupRunPause.textContent = 'Pause';
+    await requestWakeLock();
+    beginWarmupStep();
+  }
+
+  function beginWarmupStep() {
+    const exercise = PLANS.warmup.exercises[warmupRun.index];
+    if (!exercise) {
+      stopWarmupRun('Warm-up complete.');
+      return;
+    }
+    warmupRun.remaining = exercise.seconds;
+    warmupRun.deadline = Date.now() + exercise.seconds * 1000;
+    paintWarmupRun();
+    window.clearInterval(warmupRun.intervalId);
+    warmupRun.intervalId = window.setInterval(() => {
+      if (warmupRun.paused) return;
+      warmupRun.remaining = Math.max(0, Math.ceil((warmupRun.deadline - Date.now()) / 1000));
+      if (warmupRun.remaining <= 0) {
+        advanceWarmupRun(true);
+        return;
+      }
+      paintWarmupRun();
+    }, 250);
+  }
+
+  function advanceWarmupRun(completed) {
+    if (!warmupRun.active) return;
+    const exercise = PLANS.warmup.exercises[warmupRun.index];
+    window.clearInterval(warmupRun.intervalId);
+    warmupRun.intervalId = null;
+    if (completed && exercise) {
+      playTimerTone();
+      setExerciseCompleted(formatDateKey(selectedDate), 'warmup', exercise.id, true);
+    }
+    warmupRun.index += 1;
+    if (warmupRun.index >= PLANS.warmup.exercises.length) {
+      stopWarmupRun(completed ? 'Warm-up complete. Ready for the main workout.' : 'Warm-up finished.');
+      return;
+    }
+    beginWarmupStep();
+  }
+
+  function toggleWarmupRunPause() {
+    if (!warmupRun.active) return;
+    if (warmupRun.paused) {
+      warmupRun.paused = false;
+      warmupRun.deadline = Date.now() + warmupRun.remaining * 1000;
+      dom.warmupRunPause.textContent = 'Pause';
+    } else {
+      warmupRun.paused = true;
+      dom.warmupRunPause.textContent = 'Resume';
+    }
+    paintWarmupRun();
+  }
+
+  function stopWarmupRun(message) {
+    window.clearInterval(warmupRun.intervalId);
+    warmupRun.intervalId = null;
+    warmupRun.active = false;
+    warmupRun.paused = false;
+    dom.warmupRunPanel.classList.add('hidden');
+    dom.runWarmupButton.classList.remove('hidden');
+    dom.warmupRunPause.textContent = 'Pause';
+    releaseWakeLock();
+    if (message) showToast(message, 'success', 5000);
+  }
+
+  function paintWarmupRun() {
+    const exercise = PLANS.warmup.exercises[warmupRun.index];
+    if (!exercise) return;
+    const position = `Exercise ${warmupRun.index + 1} of ${PLANS.warmup.exercises.length}`;
+    dom.warmupRunStep.textContent = warmupRun.paused ? `${position} · paused` : position;
+    dom.warmupRunName.textContent = exercise.name;
+    dom.warmupRunCue.textContent = exercise.cue;
+    dom.warmupRunRemaining.textContent = formatDuration(warmupRun.remaining);
+  }
+
+  async function requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+    } catch (error) {
+      console.debug('Screen wake lock unavailable', error);
+    }
+  }
+
+  function releaseWakeLock() {
+    try {
+      wakeLock?.release();
+    } catch (error) {
+      console.debug('Could not release the wake lock', error);
+    }
+    wakeLock = null;
+  }
+
   function getVirtualLog(dateKey) {
     return normalizeLog(state.logs[dateKey] || {
       date: dateKey,
       strengthType: null,
       daily: { completed: {}, actual: {} },
+      warmup: { completed: {}, actual: {} },
       strength: { completed: {}, actual: {} },
       notes: '',
       completed: false,
@@ -585,6 +832,10 @@
       daily: {
         completed: { ...(log.daily?.completed || {}) },
         actual: { ...(log.daily?.actual || {}) }
+      },
+      warmup: {
+        completed: { ...(log.warmup?.completed || {}) },
+        actual: { ...(log.warmup?.actual || {}) }
       },
       strength: {
         completed: { ...(log.strength?.completed || {}) },
@@ -636,11 +887,17 @@
     return state.settings.strengthDays.includes(date.getDay());
   }
 
+  // The warm-up only counts toward the day on strength days; on rest days it stays
+  // visible but optional, so it can never block a 100% day.
   function dayCompletionRatio(dateKey, log = getVirtualLog(dateKey)) {
     const type = effectiveStrengthType(dateKey, log);
-    const total = PLANS.daily.exercises.length + (type === 'none' ? 0 : PLANS[type].exercises.length);
-    const done = countCompleted(log.daily.completed, PLANS.daily.exercises)
-      + (type === 'none' ? 0 : countCompleted(log.strength.completed, PLANS[type].exercises));
+    let total = PLANS.daily.exercises.length;
+    let done = countCompleted(log.daily.completed, PLANS.daily.exercises);
+    if (type !== 'none') {
+      total += PLANS.warmup.exercises.length + PLANS[type].exercises.length;
+      done += countCompleted(log.warmup.completed, PLANS.warmup.exercises)
+        + countCompleted(log.strength.completed, PLANS[type].exercises);
+    }
     return total ? done / total : 0;
   }
 
@@ -657,8 +914,10 @@
       log.completed
       || log.notes
       || Object.values(log.daily?.completed || {}).some(Boolean)
+      || Object.values(log.warmup?.completed || {}).some(Boolean)
       || Object.values(log.strength?.completed || {}).some(Boolean)
       || Object.keys(log.daily?.actual || {}).length
+      || Object.keys(log.warmup?.actual || {}).length
       || Object.keys(log.strength?.actual || {}).length
     );
   }
@@ -716,17 +975,31 @@
     }
   }
 
+  // Moves version-1 warm-up check marks out of the strength section into their own.
+  // Safe to run on any log: version-2 payloads simply have no legacy ids left to move,
+  // which is why every import path (local, backup file, cloud row) can share it.
+  function migrateWarmupSection(log) {
+    Object.entries(LEGACY_WARMUP_IDS).forEach(([legacyId, warmupId]) => {
+      if (log.strength.completed[legacyId]) log.warmup.completed[warmupId] = true;
+      if (log.strength.actual[legacyId]) log.warmup.actual[warmupId] = log.strength.actual[legacyId];
+      delete log.strength.completed[legacyId];
+      delete log.strength.actual[legacyId];
+    });
+    return log;
+  }
+
   function normalizeImportedLog(log, key) {
-    return {
+    return migrateWarmupSection({
       date: key,
       strengthType: ['A', 'B', 'none'].includes(log?.strengthType) ? log.strengthType : null,
       daily: { completed: { ...(log?.daily?.completed || {}) }, actual: { ...(log?.daily?.actual || {}) } },
+      warmup: { completed: { ...(log?.warmup?.completed || {}) }, actual: { ...(log?.warmup?.actual || {}) } },
       strength: { completed: { ...(log?.strength?.completed || {}) }, actual: { ...(log?.strength?.actual || {}) } },
       notes: typeof log?.notes === 'string' ? log.notes : '',
       completed: Boolean(log?.completed),
       completedAt: log?.completedAt || null,
       updatedAt: log?.updatedAt || new Date(0).toISOString()
-    };
+    });
   }
 
   function defaultState() {
@@ -868,9 +1141,11 @@
       if (error) throw error;
       authUser = data.session?.user || null;
       updateConnectionUi();
+      updateAuthGateVisibility();
       supabaseClient.auth.onAuthStateChange((_event, session) => {
         authUser = session?.user || null;
         updateConnectionUi();
+        updateAuthGateVisibility();
         if (authUser) window.setTimeout(() => syncWithCloud(false), 0);
       });
       if (authUser) await syncWithCloud(false);
@@ -883,17 +1158,15 @@
     }
   }
 
-  async function sendMagicLink() {
-    if (!supabaseClient) {
-      showToast('Supabase is not configured. Add the project URL and publishable key to config.js.', 'error');
-      return;
-    }
-    const email = dom.authEmail.value.trim();
+  async function sendMagicLink(rawEmail) {
+    if (!requireSupabase()) return;
+    const email = String(rawEmail || '').trim();
     if (!email) {
-      showToast('Enter your email address.', 'error');
+      reportAuthProblem('Enter your email address first.');
       return;
     }
     dom.magicLinkButton.disabled = true;
+    dom.gateMagicLink.disabled = true;
     try {
       const redirectUrl = `${window.location.origin}${window.location.pathname}`;
       const { error } = await supabaseClient.auth.signInWithOtp({
@@ -901,12 +1174,174 @@
         options: { emailRedirectTo: redirectUrl }
       });
       if (error) throw error;
-      showToast('Magic link sent. Check your email.', 'success', 7000);
+      showToast('Sign-in link sent. Check your email, then set a new PIN in Settings.', 'success', 8000);
     } catch (error) {
-      showToast(`Could not send the magic link: ${error.message}`, 'error');
+      reportAuthProblem(`Could not send the link: ${error.message}`);
     } finally {
       dom.magicLinkButton.disabled = false;
+      dom.gateMagicLink.disabled = false;
     }
+  }
+
+  function requireSupabase() {
+    if (supabaseClient) return true;
+    reportAuthProblem('Cloud sync is not configured, so there is nothing to sign in to.');
+    return false;
+  }
+
+  // Supabase treats the PIN as an ordinary password, and its default minimum is 6.
+  function validatePin(rawPin) {
+    const pin = String(rawPin || '').trim();
+    if (!/^\d+$/.test(pin)) return { error: 'The PIN must contain digits only.' };
+    if (pin.length < MIN_PIN_LENGTH) return { error: `Use at least ${MIN_PIN_LENGTH} digits.` };
+    return { pin };
+  }
+
+  async function signInWithPin(rawEmail, rawPin) {
+    if (!requireSupabase()) return;
+    const email = String(rawEmail || '').trim();
+    const { pin, error: pinError } = validatePin(rawPin);
+    if (!email) return reportAuthProblem('Enter your email address.');
+    if (pinError) return reportAuthProblem(pinError);
+
+    setAuthBusy(true);
+    try {
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password: pin });
+      if (error) throw error;
+      clearPinInputs();
+      hideAuthGate();
+      showToast('Signed in. Your history is syncing.', 'success');
+    } catch (error) {
+      reportAuthProblem(`Could not sign in: ${error.message}`);
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function registerWithPin(rawEmail, rawPin) {
+    if (!requireSupabase()) return;
+    const email = String(rawEmail || '').trim();
+    const { pin, error: pinError } = validatePin(rawPin);
+    if (!email) return reportAuthProblem('Enter your email address.');
+    if (pinError) return reportAuthProblem(pinError);
+
+    setAuthBusy(true);
+    try {
+      const { data, error } = await supabaseClient.auth.signUp({ email, password: pin });
+      if (error) throw error;
+      if (data.session) {
+        clearPinInputs();
+        hideAuthGate();
+        showToast('Account created. Remember this PIN — it is the only way back in.', 'success', 8000);
+        return;
+      }
+      // No session means either email confirmation is still switched on, or the
+      // address already exists — Supabase hides which, to prevent enumeration.
+      reportAuthProblem('No session was returned. If you already have an account, use Sign in. Otherwise confirm the email Supabase just sent, or switch off "Confirm email" in the Supabase dashboard.');
+    } catch (error) {
+      reportAuthProblem(`Could not create the account: ${error.message}`);
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function changePin() {
+    if (!requireSupabase() || !authUser) return;
+    const { pin, error: pinError } = validatePin(dom.newPinInput.value);
+    if (pinError) return reportAuthProblem(pinError);
+
+    dom.changePinButton.disabled = true;
+    try {
+      const { error } = await supabaseClient.auth.updateUser({ password: pin });
+      if (error) throw error;
+      dom.newPinInput.value = '';
+      showToast('PIN changed.', 'success');
+    } catch (error) {
+      reportAuthProblem(`Could not change the PIN: ${error.message}`);
+    } finally {
+      dom.changePinButton.disabled = false;
+    }
+  }
+
+  async function lockApp() {
+    await signOut();
+    gateDismissed = false;
+    showAuthGate();
+  }
+
+  function setAuthBusy(busy) {
+    [dom.gateSubmit, dom.pinSignInButton, dom.pinRegisterButton].forEach((button) => {
+      button.disabled = busy;
+    });
+  }
+
+  function clearPinInputs() {
+    dom.gatePin.value = '';
+    dom.gatePinConfirm.value = '';
+    dom.authPin.value = '';
+  }
+
+  // Errors surface inside the gate when it is open, and as a toast otherwise.
+  function reportAuthProblem(message) {
+    if (!dom.authGate.classList.contains('hidden')) {
+      dom.gateError.textContent = message;
+      dom.gateError.classList.remove('hidden');
+      return;
+    }
+    showToast(message, 'error', 7000);
+  }
+
+  function setGateMode(mode) {
+    gateMode = mode;
+    const registering = mode === 'register';
+    dom.authModeSignIn.classList.toggle('active', !registering);
+    dom.authModeRegister.classList.toggle('active', registering);
+    dom.authModeSignIn.setAttribute('aria-selected', String(!registering));
+    dom.authModeRegister.setAttribute('aria-selected', String(registering));
+    dom.gatePinConfirmField.classList.toggle('hidden', !registering);
+    dom.gateSubmit.textContent = registering ? 'Create account' : 'Unlock';
+    dom.authGateTitle.textContent = registering ? 'Create your account' : 'Unlock your tracker';
+    dom.authGateSubtitle.textContent = registering
+      ? 'Pick an email and a PIN of at least six digits. The PIN is the only way back to your history, so store it somewhere safe.'
+      : 'Enter your email and PIN to load your history on this device.';
+    dom.gateError.classList.add('hidden');
+  }
+
+  function handleGateSubmit(event) {
+    event.preventDefault();
+    dom.gateError.classList.add('hidden');
+    const email = dom.gateEmail.value;
+    const pin = dom.gatePin.value;
+    if (gateMode === 'register') {
+      if (pin !== dom.gatePinConfirm.value) {
+        reportAuthProblem('The two PINs do not match.');
+        return;
+      }
+      registerWithPin(email, pin);
+      return;
+    }
+    signInWithPin(email, pin);
+  }
+
+  function showAuthGate() {
+    dom.authGate.classList.remove('hidden');
+    dom.gateError.classList.add('hidden');
+    setGateMode(gateMode);
+    dom.gateEmail.focus();
+  }
+
+  function hideAuthGate() {
+    dom.authGate.classList.add('hidden');
+  }
+
+  // The gate is a front door, not a vault: it guards the cloud history behind a
+  // real Supabase session, while local-only data stays readable on this device.
+  function updateAuthGateVisibility() {
+    if (!hasSupabaseConfig() || authUser || gateDismissed) {
+      hideAuthGate();
+      return;
+    }
+    showAuthGate();
   }
 
   async function signOut() {
@@ -915,6 +1350,9 @@
     if (error) showToast(`Sign-out failed: ${error.message}`, 'error');
     else {
       authUser = null;
+      // Signing out is deliberate, so do not immediately pop the gate back up;
+      // lockApp() re-arms it when the user actually asked to lock.
+      gateDismissed = true;
       updateConnectionUi();
       showToast('Signed out. Local data remains on this device.', 'success');
     }
@@ -993,7 +1431,7 @@
     if (!configured) {
       setBadge(dom.connectionBadge, 'Local', '');
       setBadge(dom.cloudStatusBadge, 'Not configured', '');
-      dom.cloudDescription.textContent = 'The app currently stores all progress only in this browser. Add Supabase values to config.js to enable email sign-in and cross-device sync.';
+      dom.cloudDescription.textContent = 'The app currently stores all progress only in this browser. Add Supabase values to config.js to enable PIN sign-in and cross-device sync.';
       return;
     }
 
@@ -1016,7 +1454,7 @@
     } else {
       setBadge(dom.connectionBadge, 'Local', '');
       setBadge(dom.cloudStatusBadge, 'Ready to sign in', 'warning');
-      dom.cloudDescription.textContent = 'Sign in by email to synchronise progress between devices. Local tracking works without an account.';
+      dom.cloudDescription.textContent = 'Sign in with your email and PIN to synchronise progress between devices. Local tracking works without an account.';
     }
   }
 

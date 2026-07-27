@@ -70,6 +70,34 @@
         <div id="dailyExerciseList" class="exercise-list"></div>
       </section>
 
+      <section id="warmupSection" class="workout-section card" aria-labelledby="warmupHeading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Before a strength session · 5 min</p>
+            <h3 id="warmupHeading">Warm-up</h3>
+          </div>
+          <span id="warmupSectionProgress" class="section-progress">0/0</span>
+        </div>
+        <p id="warmupDescription" class="section-description"></p>
+        <button id="runWarmupButton" class="secondary-button" type="button">▶ Run the whole warm-up</button>
+
+        <div id="warmupRunPanel" class="warmup-run-panel hidden" aria-live="polite">
+          <div class="warmup-run-head">
+            <p id="warmupRunStep" class="eyebrow">Exercise 1 of 5</p>
+            <strong id="warmupRunName">March in place</strong>
+            <p id="warmupRunCue" class="section-description"></p>
+          </div>
+          <strong id="warmupRunRemaining" class="timer-display">1:00</strong>
+          <div class="timer-actions">
+            <button id="warmupRunPause" class="secondary-button" type="button">Pause</button>
+            <button id="warmupRunSkip" class="text-button" type="button">Skip</button>
+            <button id="warmupRunStop" class="text-button" type="button">Stop</button>
+          </div>
+        </div>
+
+        <div id="warmupExerciseList" class="exercise-list"></div>
+      </section>
+
       <section id="strengthSection" class="workout-section card" aria-labelledby="strengthHeading">
         <div class="section-heading strength-heading-row">
           <div>
@@ -256,15 +284,31 @@
             <span>Email address</span>
             <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com">
           </label>
-          <button id="magicLinkButton" class="primary-button" type="button">Send magic link</button>
+          <label class="field">
+            <span>PIN · at least 6 digits</span>
+            <input id="authPin" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="••••••">
+          </label>
+          <div class="button-row">
+            <button id="pinSignInButton" class="primary-button" type="button">Sign in</button>
+            <button id="pinRegisterButton" class="secondary-button" type="button">Create account</button>
+          </div>
+          <button id="magicLinkButton" class="text-button" type="button">Forgot your PIN? Email me a link</button>
         </div>
         <div id="signedInControls" class="auth-controls hidden">
           <div>
             <span class="field-label">Signed in as</span>
             <strong id="signedInEmail">—</strong>
           </div>
-          <button id="syncNowButton" class="secondary-button" type="button">Sync now</button>
-          <button id="signOutButton" class="text-button" type="button">Sign out</button>
+          <label class="field">
+            <span>New PIN · at least 6 digits</span>
+            <input id="newPinInput" type="password" inputmode="numeric" autocomplete="new-password" placeholder="••••••">
+          </label>
+          <div class="button-row">
+            <button id="changePinButton" class="secondary-button" type="button">Change PIN</button>
+            <button id="syncNowButton" class="secondary-button" type="button">Sync now</button>
+            <button id="lockButton" class="text-button" type="button">Lock</button>
+            <button id="signOutButton" class="text-button" type="button">Sign out</button>
+          </div>
         </div>
       </section>
 
@@ -290,6 +334,40 @@
     </section>
   </main>
 
+  <div id="authGate" class="auth-gate hidden" role="dialog" aria-modal="true" aria-labelledby="authGateTitle">
+    <div class="auth-gate-card card">
+      <div class="auth-gate-head">
+        <div class="brand-mark" aria-hidden="true">P</div>
+        <h2 id="authGateTitle">Unlock your tracker</h2>
+        <p id="authGateSubtitle" class="section-description">Enter your email and PIN to load your history on this device.</p>
+      </div>
+      <div class="auth-mode-switch" role="tablist" aria-label="Authentication mode">
+        <button id="authModeSignIn" class="auth-mode-button active" type="button" role="tab" aria-selected="true">Sign in</button>
+        <button id="authModeRegister" class="auth-mode-button" type="button" role="tab" aria-selected="false">Create account</button>
+      </div>
+      <form id="authGateForm" class="auth-gate-form" novalidate>
+        <label class="field">
+          <span>Email address</span>
+          <input id="gateEmail" type="email" autocomplete="email" placeholder="you@example.com">
+        </label>
+        <label class="field">
+          <span>PIN · at least 6 digits</span>
+          <input id="gatePin" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="••••••">
+        </label>
+        <label id="gatePinConfirmField" class="field hidden">
+          <span>Repeat PIN</span>
+          <input id="gatePinConfirm" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="••••••">
+        </label>
+        <p id="gateError" class="auth-error hidden" role="alert"></p>
+        <button id="gateSubmit" class="primary-button" type="submit">Unlock</button>
+      </form>
+      <div class="auth-gate-footer">
+        <button id="gateMagicLink" class="text-button" type="button">Forgot your PIN? Email me a link</button>
+        <button id="gateSkip" class="text-button" type="button">Continue on this device only</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
 
   <template id="exerciseTemplate">
@@ -302,7 +380,10 @@
           <span class="exercise-target"></span>
         </span>
       </label>
-      <button class="exercise-details-toggle text-button" type="button" aria-expanded="false">Details</button>
+      <div class="exercise-actions">
+        <button class="exercise-timer-button text-button hidden" type="button">▶ 0:00</button>
+        <button class="exercise-details-toggle text-button" type="button" aria-expanded="false">Details</button>
+      </div>
       <div class="exercise-details hidden">
         <p class="exercise-cue"></p>
         <label class="field compact-log-field">
